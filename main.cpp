@@ -119,20 +119,14 @@ void triangle(int x1, int y1, int x2, int y2, int x3, int y3, sf::Color color) {
     line(x2, y2, x3, y3, color);
     line(x3, y3, x1, y1, color);
 }
-int drawChar(int x, int y, char c, sf::Color color,const std::string& fontFile = "font.bdf") {
-    //load bdf file and draw character
-    std::ifstream bdfFile(fontFile);
-    if (!bdfFile.is_open()) {
-        std::cerr << "Error opening font file. "  << std::endl;
-
-        return 0;
-    }
+//drawchar passing ifstream
+int drawChar(int x, int y, char c, sf::Color color, std::ifstream & bdfFile) {;
     std::string line;
     std::string lineBinary;
     int charWidth = 0;
     bool foundChar = false;
     while (std::getline(bdfFile, line)) {
-        if (line.find("ENCODING") != std::string::npos && line.find( std::to_string(c)) != std::string::npos) {
+        if (line.find("ENCODING") != std::string::npos && line.find(std::to_string(c)) != std::string::npos) {
             foundChar = true;
         } else if (foundChar && line.find("ENDCHAR") != std::string::npos) {
             break;
@@ -161,14 +155,36 @@ int drawChar(int x, int y, char c, sf::Color color,const std::string& fontFile =
             y++;
         }
     }
+    return charWidth;
+}
+int drawChar(int x, int y, char c, sf::Color color,const std::string& fontFile = "font.bdf") {
+    //load bdf file and draw character
+    std::ifstream bdfFile(fontFile);
+    if (!bdfFile.is_open()) {
+        std::cerr << "Error opening font file. "  << std::endl;
+        return 0;
+    }
+    int charWidth = drawChar(x, y, c, color, bdfFile);
     bdfFile.close();
     return charWidth;
 }
 
 void drawText(const int x, const int y, const std::string &text, const sf::Color color, const std::string& fontFile = "font.bdf") {
-    int charWidth = drawChar(x, y, text[0], color, fontFile);
-    for (int i = 1; i < text.length(); ++i) {
-        charWidth = drawChar(x + i * charWidth, y, text[i], color,fontFile);
+    std::ifstream bdfFile(fontFile);
+    if (!bdfFile.is_open()) {
+        std::cerr << "Error opening font file. "  << std::endl;
+        return;
+    }
+
+    int charWidth = 0;
+    for (int i = 0; i < text.length(); ++i) {
+        charWidth = drawChar(x + i * charWidth, y, text[i], color,bdfFile);
+        if (charWidth == 0) {
+            std::cerr << "Error drawing character: " << text[i] << std::endl;
+            continue;
+        }
+        bdfFile.clear();
+        bdfFile.seekg(0, std::ios::beg); // Reset file pointer to the beginning for the next character
     }
 }
 void replaceColor(const sf::Color color, const sf::Color newColor) {
